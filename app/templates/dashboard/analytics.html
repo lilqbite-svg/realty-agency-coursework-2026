@@ -1,0 +1,51 @@
+{% extends 'dashboard/base.html' %}
+{% macro chart_panel(graph) %}
+<section class="panel" aria-labelledby="heading-{{ graph.key }}">
+  <h2 id="heading-{{ graph.key }}">{{ graph.title }}</h2><p class="analytics-chart-note">{{ graph.note }} Единица: {{ graph.unit }}.</p>
+  <div class="analytics-chart" data-chart="{{ graph.key }}" aria-label="{{ graph.title }}"><noscript><p class="muted">Значения доступны в таблице под графиком.</p></noscript></div>
+  <details class="analytics-data"><summary>Таблица значений</summary><div class="table-wrap"><table><thead><tr><th scope="col">Категория</th><th scope="col">{{ graph.unit }}</th></tr></thead><tbody>{% for label in graph.labels %}<tr><td>{{ label }}</td><td>{{ graph.display_values[loop.index0] }}</td></tr>{% else %}<tr><td colspan="2">Нет данных</td></tr>{% endfor %}</tbody></table></div></details>
+</section>
+{% endmacro %}
+{% block dashboard_content %}
+<style>
+.analytics-page{min-width:0}.analytics-filter{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:end}.analytics-kpis{margin-top:18px}.analytics-kpis .kpi{min-width:0}.analytics-kpis .kpi strong{font-size:25px;overflow-wrap:anywhere}.analytics-kpis .kpi p{font-size:12px;line-height:1.5;color:var(--muted);margin-bottom:0}.analytics-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.analytics-charts .panel{min-width:0;margin-top:0}.analytics-chart{width:100%;min-height:220px}.analytics-chart svg{display:block;width:100%;height:auto}.analytics-chart-note{font-size:13px;line-height:1.5;color:var(--muted)}.analytics-data{margin-top:12px}.analytics-data table{min-width:0}.analytics-data summary{cursor:pointer;color:var(--primary)}.analytics-section-title{margin-top:30px}.analytics-error{margin-bottom:18px}.analytics-export{margin-bottom:0}.analytics-definition{line-height:1.6}.analytics-empty{padding:28px 12px;text-align:center;color:var(--muted)}.analytics-filter .actions{grid-column:1/-1;margin:0}.analytics-group-note{line-height:1.6}.analytics-performance td:first-child{overflow-wrap:anywhere}
+@media(max-width:1100px){.analytics-filter{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-charts{grid-template-columns:1fr}}
+@media(max-width:680px){.analytics-filter{grid-template-columns:1fr}.analytics-kpis .kpi strong{font-size:24px}.analytics-performance{min-width:580px}}
+</style>
+<div class="analytics-page">
+{% if error %}<div class="flash danger analytics-error" role="alert">{{ error }}</div>{% endif %}
+<section class="panel" aria-labelledby="analytics-filter-title">
+  <h2 id="analytics-filter-title">Период и сотрудник</h2>
+  <p class="muted">Даты и время учитываются по Москве. Данные обновляются при применении фильтра.</p>
+  {% set values = report.filters.query if report else request.args %}
+  <form method="get" action="{{ url_for('analytics.index') }}" class="analytics-filter" id="analyticsFilter">
+    <div class="field"><label for="analyticsPreset">Период</label><select id="analyticsPreset" name="preset" class="select">{% for value, label in presets.items() %}<option value="{{ value }}" {% if values.get('preset','current_month') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div class="field"><label for="analyticsStart">С даты</label><input class="input" type="date" name="start" id="analyticsStart" min="2000-01-01" max="2100-12-31" value="{{ values.get('start','') }}"></div>
+    <div class="field"><label for="analyticsEnd">По дату включительно</label><input class="input" type="date" name="end" id="analyticsEnd" min="2000-01-01" max="2100-12-31" value="{{ values.get('end','') }}"></div>
+    {% if current_user.role == 'ADMIN' %}<div class="field"><label for="analyticsAgent">Риэлтор</label><select class="select" name="agent_id" id="analyticsAgent"><option value="all">Все риэлторы</option>{% for agent in agents %}<option value="{{ agent.id }}" {% if values.get('agent_id')|string == agent.id|string %}selected{% endif %}>{{ agent.full_name }} (#{{ agent.id }})</option>{% endfor %}</select></div>{% else %}<div class="field"><label>Доступные данные</label><p>{{ current_user.full_name }} — только свои записи</p></div>{% endif %}
+    <div class="actions"><button class="btn btn-primary" type="submit">Применить фильтр</button><a class="btn btn-light" href="{{ url_for('analytics.index') }}">Текущий месяц</a><span class="muted">Произвольный период — до 1096 календарных дней.</span></div>
+  </form>
+</section>
+{% if report %}
+<div class="actions analytics-export"><strong>{{ report.period_label }}</strong><span class="muted">{{ report.scope_label }}</span><a class="btn btn-light" href="{{ url_for('analytics.export_csv', **report.filters.query) }}">Скачать CSV</a><a class="btn btn-light" href="{{ url_for('analytics.export_pdf', **report.filters.query) }}">Скачать PDF</a></div>
+<p class="muted">Сформировано: {{ report.generated_at }}. Сумма сделок отражает стоимость по договорам и не является доходом агентства.</p>
+<section class="kpis analytics-kpis" aria-label="Основные показатели">
+{% for metric in report.metrics %}<article class="kpi" data-metric="{{ metric.key }}"><small>{{ metric.label }}</small><strong>{{ metric.display }}</strong><p>{{ metric.definition }}</p></article>{% endfor %}
+</section>
+<h2 class="analytics-section-title">Динамика за период</h2>
+<div class="analytics-charts">
+{% for graph in report.charts[:3] %}{{ chart_panel(graph) }}{% endfor %}
+</div>
+<h2 class="analytics-section-title">Состав данных и результаты сотрудников</h2>
+<div class="analytics-charts">{% for graph in report.charts[3:6] %}{{ chart_panel(graph) }}{% endfor %}</div>
+<section class="panel"><h2>Показатели риэлторов</h2><p class="analytics-chart-note">Заявки — созданные в периоде; показы — подтверждённые и состоявшиеся с датой в периоде; сделки — завершённые с датой в периоде. Неназначенные заявки: {{ report.unassigned_requests }}. Это абсолютные показатели, а не оценка качества работы сотрудника.</p><div class="table-wrap"><table class="analytics-performance"><thead><tr><th scope="col">Риэлтор</th><th scope="col">Заявки</th><th scope="col">Показы</th><th scope="col">Сделки</th><th scope="col">Сумма сделок, ₽</th></tr></thead><tbody>{% for row in report.performance %}<tr><td>{{ row.name }} (#{{ row.id }})</td><td>{{ row.requests }}</td><td>{{ row.viewings }}</td><td>{{ row.deals }}</td><td>{{ row.amount|float|money }}</td></tr>{% else %}<tr><td colspan="5">Нет риэлторов в выбранной области доступа.</td></tr>{% endfor %}</tbody></table></div></section>
+<h2 class="analytics-section-title">Воронка и полнота связей</h2>
+<p class="analytics-group-note">В когорте {{ report.cohort_count }} заявок, созданных в выбранном периоде. Для каждой учитываются явно связанные показы и сделки за всё время. Повторные показы не увеличивают число заявок на этапе. Сделка учитывается только с указанной заявкой и подтверждённым либо завершённым показом того же объекта и клиента. При нескольких заявках одного клиента используется выбранная заявка, а не совпадение контактных данных.</p>
+{{ chart_panel(report.charts[6]) }}
+{% if report.cohort_count == 0 %}<p class="flash info">Недостаточно данных для конверсии: в периоде нет заявок.</p>{% endif %}
+<p class="analytics-group-note">Без связи с заявкой в выбранном периоде: <strong>{{ report.missing_viewings }} показов</strong> и <strong>{{ report.missing_deals }} завершённых сделок</strong>. Эти записи входят в свои общие показатели, но не в конверсию. Поэтому воронка может отражать не все исторические результаты.</p>
+<script type="application/json" id="analyticsData">{{ report.charts|tojson }}</script>
+{% endif %}
+</div>
+<script src="{{ url_for('static', filename='js/analytics.js') }}" defer></script>
+{% endblock %}

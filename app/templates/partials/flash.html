@@ -1,0 +1,3 @@
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}
+<div class="container flash-stack" aria-live="polite">{% for category, message in messages %}<div class="flash {{ category }}" role="status">{{ message }}</div>{% endfor %}</div>
+{% endif %}{% endwith %}

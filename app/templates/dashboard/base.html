@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block layout %}
+<div class="dashboard-shell"><aside class="sidebar">
+<a class="brand" href="{{ url_for('main.index') }}"><span class="brand-mark">КВ</span><span>Ключевой выбор</span></a>
+<nav aria-label="Кабинет сотрудника">
+{% for endpoint, text in [('dashboard.index','▦ Обзор'), ('dashboard.properties','⌂ Объекты'), ('dashboard.clients','♙ Клиенты'), ('dashboard.requests','✉ Заявки'), ('dashboard.viewings','◷ Показы'), ('calendar.index','▣ Календарь показов'), ('analytics.index','▥ Аналитика'), ('dashboard.deals','₽ Сделки')] %}<a class="side-link {% if request.endpoint == endpoint %}active{% endif %}" href="{{ url_for(endpoint) }}">{{ text }}</a>{% endfor %}
+{% if current_user.role == 'ADMIN' %}<a class="side-link {% if request.blueprint == 'admin' %}active{% endif %}" href="{{ url_for('admin.index') }}">⚙ Учетные записи</a>{% endif %}
+<a class="side-link" href="{{ url_for('auth.profile') }}">Профиль</a>
+</nav><p class="staff-name">{{ current_user.full_name }}</p><form method="post" action="{{ url_for('auth.logout') }}">{% include 'partials/csrf.html' %}<button class="btn btn-light" type="submit">Выйти</button></form>
+</aside><main class="dashboard-main">
+  <div class="dashboard-head"><div><small class="muted">{{ 'Администратор' if current_user.role == 'ADMIN' else 'Кабинет риэлтора' }}</small><h1>{{ title }}</h1></div><a class="btn btn-light" href="{{ url_for('main.index') }}">← На сайт</a></div>
+  {% include 'partials/flash.html' %}
+  {% block dashboard_content %}{% endblock %}
+</main></div>
+{% endblock %}

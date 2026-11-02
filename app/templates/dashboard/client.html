@@ -1,0 +1,2 @@
+{% extends 'dashboard/base.html' %}{% block dashboard_content %}<section class="panel"><p>{{ person.phone }} · {{ person.email or 'Email не указан' }} · {{ labels[person.client_type] }}</p><a class="btn btn-primary" href="{{ url_for('dashboard.client_form', client_id=person.id) }}">Редактировать клиента</a></section>
+{% for kind, title, items in [('requests','Заявки клиента',requests), ('viewings','Показы клиента',viewings), ('deals','Сделки клиента',deals)] %}<section class="panel"><h2>{{ title }}</h2>{% include 'dashboard/table.html' %}</section>{% endfor %}{% endblock %}

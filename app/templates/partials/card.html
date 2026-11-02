@@ -1,0 +1,12 @@
+<article class="property-card" data-property-id="{{ property.id }}">
+  <div class="property-visual visual-{{ property.visual_style }} {% if property.main_photo %}has-photo{% endif %}">
+    {% if property.main_photo %}<a href="{{ url_for('catalog.detail', property_id=property.id) }}"><img src="{{ url_for('static', filename=property.main_photo.image_url) }}" alt="{{ property.title }}" loading="lazy"></a>{% endif %}
+    <span class="badge">{{ labels[property.deal_type] }}</span>
+    {% if not current_user.is_authenticated %}<a class="favorite" aria-label="Войти для добавления в избранное" href="{{ url_for('auth.login', next=url_for('catalog.detail', property_id=property.id)) }}">♡</a>
+    {% elif current_user.role == 'CLIENT' %}<button class="favorite {% if property.id in favorite_ids %}is-active{% endif %}" type="button" aria-label="Переключить избранное" aria-pressed="{{ 'true' if property.id in favorite_ids else 'false' }}" data-favorite="{{ url_for('catalog.toggle', property_id=property.id) }}">{{ '♥' if property.id in favorite_ids else '♡' }}</button>{% endif %}
+  </div>
+  <div class="property-body"><div class="property-price">{{ property.price|money }} ₽{% if property.deal_type == 'rent' %}/мес.{% endif %}</div>
+    <div class="property-title"><a href="{{ url_for('catalog.detail', property_id=property.id) }}">{{ property.title }}</a></div>
+    <div class="property-address">{{ property.address }}</div><div class="features"><span>◫ {{ property.rooms }} комн.</span><span>↕ {{ property.floor }}/{{ property.total_floors }} этаж</span><span>□ {{ '%g'|format(property.area) }} м²</span></div>
+  </div>
+</article>

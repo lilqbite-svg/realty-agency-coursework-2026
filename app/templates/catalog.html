@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container page-hero"><h1>Каталог недвижимости</h1><p>Найдите объект по адресу, району, цене и площади.</p></div>
+<section class="section" style="padding-top:16px"><div class="container catalog-layout">
+  <form method="get" action="{{ url_for('catalog.index') }}" class="filters" id="catalogFilter">
+    <h3>Фильтры</h3>
+    {% for name in ['q','deal','type','rooms','district','min_price','max_price','min_area','max_area'] %}{% set field = form[name] %}
+    <div class="filter-group">{{ field.label }}{{ field(class_='select' if field.type == 'SelectField' else 'input') }}{% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}</div>
+    {% endfor %}
+    <button class="btn btn-primary" type="submit" style="width:100%">Применить</button><a class="btn btn-light" href="{{ url_for('catalog.index') }}" style="width:100%;margin-top:8px">Сбросить</a>
+  </form>
+  <div><div class="catalog-top"><strong>{{ page.total|objects_count }}</strong><div>{{ form.sort(class_='select', form='catalogFilter', data_submit='catalogFilter', aria_label='Сортировка') }}{% for error in form.sort.errors %}<span class="field-error">{{ error }}</span>{% endfor %}</div></div>
+    {% for error in form.page.errors %}<div class="flash danger">{{ error }}</div>{% endfor %}
+    <div class="cards" id="catalogCards">{% for property in page.items %}{% include 'partials/card.html' %}{% endfor %}</div>
+    {% if not page.items %}<div class="empty visible">По выбранным параметрам объектов не найдено. Попробуйте изменить фильтры.</div>{% endif %}
+    {% if page.pages > 1 %}<nav class="pagination" aria-label="Страницы каталога">{% for number in page.iter_pages() %}{% if number %}<a class="btn {{ 'btn-primary' if number == page.page else 'btn-light' }}" href="{{ url_for('catalog.index', page=number, **params) }}">{{ number }}</a>{% else %}<span>…</span>{% endif %}{% endfor %}</nav>{% endif %}
+  </div>
+</div></section>
+{% endblock %}

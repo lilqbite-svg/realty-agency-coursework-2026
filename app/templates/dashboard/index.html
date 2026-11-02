@@ -1,0 +1,6 @@
+{% extends 'dashboard/base.html' %}
+{% block dashboard_content %}
+<section class="kpis">{% for label in ['Активные объекты','Новые заявки','Показы','Сделки за месяц'] %}<div class="kpi"><small>{{ label }}</small><strong>{{ kpis[loop.index0] }}</strong><span class="up">{{ 'Заключенные в текущем месяце' if loop.last else 'По данным базы' }}</span></div>{% endfor %}</section>
+<section class="panel"><div class="panel-head"><h2>Динамика заявок</h2><span class="muted">Последние 7 дней</span></div><div class="chart">{% for day, count, height in chart %}<div class="bar" style="height:{{ height }}%" title="{{ day }}: {{ count }}"><b>{{ count }}</b><span>{{ day }}</span></div>{% endfor %}</div></section>
+{% for kind, heading, records, endpoint in [('requests','Последние заявки',requests,'dashboard.requests'), ('clients','Клиенты',clients,'dashboard.clients'), ('viewings','Ближайшие показы',viewings,'dashboard.viewings'), ('deals','Сделки',deals,'dashboard.deals')] %}<section class="panel"><div class="panel-head"><h2>{{ heading }}</h2><a class="btn btn-light" href="{{ url_for(endpoint) }}">Все записи</a></div>{% set items = records %}{% include 'dashboard/table.html' %}</section>{% endfor %}
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'dashboard/base.html' %}
+{% macro explanation(evaluation) %}
+<details class="matching-explanation"><summary>Почему такая оценка</summary>
+  <h3>Обязательные условия</h3><ul>{% for item in evaluation.required %}<li>{{ '✓' if item.passed else '✕' }} {{ item.reason }}</li>{% endfor %}</ul>
+  {% if evaluation.criteria %}<h3>Расчет баллов</h3><ul>{% for criterion in evaluation.criteria %}<li><strong>{{ criterion.label }}</strong>: {{ criterion.reason }}. Вес {{ '%.2f'|format(criterion.weight) }}%; вклад {{ '%.2f'|format(criterion.points) }} балла.</li>{% endfor %}</ul>
+  {% else %}<p>Дополнительные критерии ранжирования не заданы или отключены весами. 100 баллов означают только выполнение обязательных условий; преимущества одного варианта перед другим не определяются.</p>{% endif %}
+  {% if not evaluation.eligible %}<p class="field-error">Нарушено обязательное условие: текущая оценка равна нулю, вариант исключен из новых результатов.</p>{% endif %}
+</details>
+{% endmacro %}
+{% block dashboard_content %}
+<style>
+.matching-request{display:flex;justify-content:space-between;gap:24px;align-items:start}.matching-request p{margin:8px 0}.matching-note{font-size:14px;color:var(--muted)}.matching-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.matching-result{min-width:0}.matching-result .property-visual{aspect-ratio:2.7}.matching-result .property-body{padding:20px}.matching-result .property-card:hover{transform:none}.matching-score{display:flex;gap:10px;align-items:baseline;margin:12px 0}.matching-score strong{color:var(--primary);font-size:27px}.matching-explanation{margin:14px 0;border-top:1px solid var(--line);padding-top:12px}.matching-explanation summary,.matching-requirements summary,.matching-history summary{cursor:pointer;font-weight:700;color:var(--primary)}.matching-explanation h3{font-size:14px;margin:13px 0 5px}.matching-explanation ul{margin:8px 0;padding-left:22px;font-size:14px}.matching-explanation li{margin:7px 0}.matching-placeholder{position:absolute;z-index:1;bottom:8px;left:8px;background:rgba(255,255,255,.9);padding:4px 8px;border-radius:8px;font-size:12px}.matching-toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;margin:25px 0 18px;flex-wrap:wrap}.matching-toolbar form{display:flex;gap:8px;align-items:center}.matching-toolbar h2{margin:0;font-size:22px}.matching-saved{margin-top:24px}.matching-saved-head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}.matching-saved h3{margin:0;font-size:19px}.matching-scores{display:flex;gap:20px;flex-wrap:wrap;margin:15px 0}.matching-scores strong{font-size:20px;display:block}.matching-scores span{font-size:13px;color:var(--muted)}.matching-history{margin:15px 0}.matching-history ol{padding-left:22px}.matching-history li{padding:8px 0}.matching-history p{font-size:13px;margin:4px 0;overflow-wrap:anywhere}.matching-requirements .form-grid{margin-top:18px}.matching-result .actions{margin-bottom:0}.matching-saved .field textarea{min-height:86px}.matching-saved .actions{margin-bottom:4px}@media(max-width:760px){.matching-grid{grid-template-columns:1fr}.matching-request{display:block}.matching-toolbar form{flex-wrap:wrap;width:100%}.matching-toolbar .select{max-width:none}.matching-result .property-visual{aspect-ratio:2.2}}
+</style>
+<section class="panel matching-request" aria-label="Требования заявки">
+  <div><h2>Заявка №{{ record.id }} · {{ record.client.full_name }}</h2>
+    <p>{{ labels[record.deal_type] }} · {{ labels[record.property_type] if record.property_type else 'Любой тип' }} · {{ record.rooms if record.rooms is not none else 'Любое количество' }} комн. · {{ record.preferred_area or 'Район не указан' }}</p>
+    <p>Бюджет: от {{ record.min_price|money if record.min_price is not none else 'не задан' }} до {{ record.max_price|money if record.max_price is not none else 'не задан' }} ₽.</p>
+    <p class="matching-note">Баллы показывают соответствие правилам подбора, а не вероятность покупки. Решение принимает риэлтор.</p>
+  </div><a class="btn btn-light" href="{{ url_for('dashboard.request_form', request_id=record.id) }}">К заявке</a>
+</section>
+<details class="panel matching-requirements"><summary>Изменить требования и пересчитать текущие результаты</summary>
+  <p class="matching-note">Изменятся параметры исходной заявки. Сохраненные оценки останутся в истории и обновляются отдельной кнопкой.</p>
+  <form method="post" action="{{ url_for('matching.requirements', request_id=record.id) }}" class="form-grid">
+    {{ requirements_form.hidden_tag() }}
+    {% for field in [requirements_form.deal_type, requirements_form.property_type, requirements_form.min_price, requirements_form.max_price, requirements_form.rooms, requirements_form.preferred_area] %}<div class="field">{{ field.label }}{{ field(class='select' if field.type == 'SelectField' else 'input') }}</div>{% endfor %}
+    <div class="full"><button class="btn btn-primary" type="submit">Сохранить требования</button></div>
+  </form>
+</details>
+<div class="matching-toolbar"><h2>Подходящих объектов: {{ candidates|length }}</h2>
+  <form method="get"><label for="matching-sort">Сортировка</label><select class="select" name="sort" id="matching-sort">{% for key, label in sorts %}<option value="{{ key }}" {% if sort == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="btn btn-light" type="submit">Применить</button></form>
+</div>
+{% if candidates %}<div class="matching-grid">{% for row in candidates %}{% set property = row.property %}{% set evaluation = row.evaluation %}
+<article class="property-card matching-result" data-property-id="{{ property.id }}">
+  <div class="property-visual visual-{{ property.visual_style }} {% if property.main_photo %}has-photo{% endif %}">{% if property.main_photo %}<img src="{{ url_for('static', filename=property.main_photo.image_url) }}" alt="{{ property.title }}" loading="lazy">{% else %}<span class="matching-placeholder">Фотография не загружена</span>{% endif %}<span class="badge">{{ labels[property.deal_type] }}</span></div>
+  <div class="property-body"><div class="property-price">{{ property.price|money }} ₽{% if property.deal_type == 'rent' %}/мес.{% endif %}</div><h3 class="property-title">{{ property.title }}</h3><div class="property-address">{{ property.address }} · {{ property.district }}</div>
+    <div class="features"><span>{{ property.rooms }} комн.</span><span>{{ '%g'|format(property.area) }} м²</span><span>Риэлтор: {{ property.agent.full_name }}</span></div>
+    <div class="matching-score"><strong>{{ '%.2f'|format(evaluation.score) }} / 100</strong><span>текущая оценка</span></div>
+    {{ explanation(evaluation) }}
+    <div class="actions"><a class="btn btn-light" href="{{ url_for('catalog.detail', property_id=property.id) }}">Карточка</a>
+    {% if property.id in saved_ids %}<a class="btn btn-light" href="#saved-{{ property.id }}">В подборке ↓</a>{% else %}<form method="post" action="{{ url_for('matching.save', request_id=record.id, property_id=property.id) }}">{% include 'partials/csrf.html' %}<button class="btn btn-primary" type="submit">Сохранить вариант</button></form>{% endif %}
+    <a class="btn btn-light" href="{{ url_for('calendar.index', request_id=record.id, property_id=property.id, client_id=record.client_id) }}">Назначить показ</a></div>
+  </div>
+</article>{% endfor %}</div>{% else %}<div class="empty visible">Подходящих объектов нет. Проверьте бюджет и тип недвижимости в заявке. Сохраненные ранее варианты остаются ниже.</div>{% endif %}
+<section class="matching-saved" aria-labelledby="saved-title"><h2 id="saved-title">Сохраненные варианты · {{ saved_rows|length }}</h2>
+{% for row in saved_rows %}{% set match = row.match %}{% set property = match.property %}
+<article class="panel" id="saved-{{ property.id }}" data-saved-match-id="{{ match.id }}">
+  <div class="matching-saved-head"><h3>{{ property.title }}</h3><span class="status {{ 'orange' if match.status == 'rejected' else 'blue' }}">{{ match_labels[match.status] }}</span></div>
+  <p>{{ property.price|money }} ₽ · {{ property.district }} · {{ labels[property.status] }}</p>
+  <div class="matching-scores"><div><span>Сохраненная оценка</span><strong>{{ '%.2f'|format(match.score) }} / 100</strong></div><div><span>Текущая оценка</span><strong>{{ '%.2f'|format(row.evaluation.score) }} / 100</strong></div></div>
+  {% if row.changed %}<p class="flash warning">Параметры или правила расчета изменились. Сохраненная оценка не перезаписана.</p>{% else %}<p class="matching-note">Сохраненный расчет соответствует текущим параметрам.</p>{% endif %}
+  {{ explanation(row.evaluation) }}
+  <form method="post" action="{{ url_for('matching.edit', request_id=record.id, match_id=match.id) }}" class="form-grid">
+    {{ row.form.hidden_tag() }}
+    <div class="field"><label for="status-{{ match.id }}">Решение по варианту</label>{{ row.form.status(class='select', id='status-' ~ match.id) }}</div>
+    <div class="field"><label for="comment-{{ match.id }}">Комментарий риэлтора</label>{{ row.form.agent_comment(class='textarea', id='comment-' ~ match.id, maxlength=5000) }}</div>
+    <div class="full"><button class="btn btn-primary" type="submit">Сохранить решение</button></div>
+  </form>
+  <div class="actions"><form method="post" action="{{ url_for('matching.refresh', request_id=record.id, match_id=match.id) }}">{% include 'partials/csrf.html' %}<button class="btn btn-light" type="submit">Обновить сохраненную оценку</button></form>
+  {% if property.status != 'archived' %}<a class="btn btn-light" href="{{ url_for('catalog.detail', property_id=property.id) }}">Карточка объекта</a>{% endif %}
+  {% if row.evaluation.eligible %}<a class="btn btn-light" href="{{ url_for('calendar.index', request_id=record.id, property_id=property.id, client_id=record.client_id) }}">Назначить показ</a>{% endif %}</div>
+  <details class="matching-history"><summary>История варианта · {{ row.history|length }}</summary><ol>{% for event in row.history %}<li><strong>{{ event.label }}</strong> · {{ event.when }} (Москва)
+    {% if event.snapshot %}<p>Оценка: {{ event.snapshot.score }} / 100; версия {{ event.snapshot.version }}. {% if event.previous_snapshot %}Предыдущая оценка: {{ event.previous_snapshot.score }} / 100.{% endif %}</p><p>Условия: {{ event.snapshot.request_parameters.preferred_area or 'район не задан' }}, комнаты {{ event.snapshot.request_parameters.rooms if event.snapshot.request_parameters.rooms is not none else 'не заданы' }}, бюджет {{ event.snapshot.request_parameters.min_price or 'без минимума' }} — {{ event.snapshot.request_parameters.max_price or 'без максимума' }} ₽. Цена объекта на момент расчета: {{ event.snapshot.property_parameters.price }} ₽.</p>{% endif %}
+    {% if event.status %}<p>Решение: {{ match_labels.get(event.status, event.status) }}.</p>{% endif %}{% if event.agent_comment %}<p class="preserve-lines">Комментарий: {{ event.agent_comment }}</p>{% endif %}
+  </li>{% endfor %}</ol></details>
+</article>{% else %}<div class="empty visible">Сохраненных вариантов пока нет. Выберите подходящий объект и нажмите «Сохранить вариант».</div>{% endfor %}
+</section>
+<details class="panel matching-explanation"><summary>Правила оценки</summary><p>Сначала проверяются доступность, тип сделки, тип объекта и заданные границы цены. Нарушение любого обязательного условия исключает объект.</p><p>Базовые веса: район {{ weights.district }}; комнаты {{ weights.rooms }}; бюджет {{ weights.budget }}. Если критерий не задан, его вес не участвует в расчете; оставшиеся веса нормализуются до 100%.</p><p>Район сравнивается по полному названию без учета регистра, лишних пробелов и различия «е/ё». Для комнат: max(0; 1 − |факт − требование| / max(требование; 1)). Для бюджета: max(0; 1 − |цена − цель| / цель); цель — середина заданного диапазона либо единственная положительная граница. Итог — взвешенная сумма, округленная до сотых.</p><p class="matching-note">Версия {{ version }}. Расчет детерминирован: одинаковые данные и веса дают одинаковую оценку.</p></details>
+{% endblock %}

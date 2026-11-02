@@ -1,0 +1,13 @@
+{{ form.hidden_tag() }}
+{% for field in form if field.type not in ['CSRFTokenField', 'SubmitField', 'HiddenField'] %}
+<div class="field {% if field.type in ['TextAreaField','MultipleFileField'] %}full{% endif %}">
+  {{ field.label }}
+  {% if field.type == 'BooleanField' %}{{ field() }}
+  {% elif field.type == 'TextAreaField' %}{{ field(class_='textarea', rows=4) }}
+  {% elif field.type == 'SelectField' %}{{ field(class_='select') }}
+  {% elif field.type == 'MultipleFileField' %}{{ field(class_='input', accept='.jpg,.jpeg,.png,.webp', data_preview='photoPreview') }}
+  {% else %}{{ field(class_='input') }}{% endif %}
+  {% for error in field.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
+</div>
+{% endfor %}
+<div class="full">{{ form.submit(class_='btn btn-primary') }}</div>

@@ -1,0 +1,9 @@
+{% extends 'dashboard/base.html' %}
+{% block dashboard_content %}
+<div class="actions">
+{% if kind == 'properties' %}<a class="btn btn-primary" href="{{ url_for('dashboard.property_form') }}">+ Добавить объект</a>
+{% elif kind == 'clients' %}<a class="btn btn-primary" href="{{ url_for('dashboard.client_form') }}">+ Добавить клиента</a><form method="get" class="actions"><input class="input" name="q" value="{{ request.args.get('q','') }}" placeholder="ФИО, email или телефон" aria-label="Поиск клиентов"><button class="btn btn-light" type="submit">Найти</button></form>
+{% elif kind == 'viewings' %}<a class="btn btn-primary" href="{{ url_for('dashboard.viewing_form') }}">+ Назначить показ</a>
+{% elif kind == 'deals' %}<a class="btn btn-primary" href="{{ url_for('dashboard.deal_form') }}">+ Создать сделку</a>{% endif %}
+</div><section class="panel">{% include 'dashboard/table.html' %}</section>
+{% endblock %}

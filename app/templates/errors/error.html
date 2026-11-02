@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<section class="section"><div class="container narrow"><div class="form-card"><span class="eyebrow">Ошибка {{ code }}</span><h1>{{ message }}</h1><a class="btn btn-primary" href="{{ url_for('main.index') }}">На главную</a><a class="btn btn-light" href="{{ url_for('catalog.index') }}">Каталог</a></div></div></section>{% endblock %}

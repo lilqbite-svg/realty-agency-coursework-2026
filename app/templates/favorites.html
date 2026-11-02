@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<div class="container page-hero"><h1>Избранное</h1></div><div class="container"><div class="cards">{% for property in items %}{% include 'partials/card.html' %}{% else %}<div class="empty visible">Сохраненных объектов пока нет.</div>{% endfor %}</div></div>{% endblock %}

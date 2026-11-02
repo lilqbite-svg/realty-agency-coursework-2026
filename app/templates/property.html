@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container"><div class="breadcrumbs"><a href="{{ url_for('main.index') }}">Главная</a> / <a href="{{ url_for('catalog.index') }}">Каталог</a> / {{ property.title }}</div>
+<section class="property-detail"><div>
+  <div class="gallery-main {% if property.main_photo %}has-photo{% endif %}">{% if property.main_photo %}<img id="mainPhoto" src="{{ url_for('static', filename=property.main_photo.image_url) }}" alt="{{ property.title }}">{% endif %}</div>
+  {% if property.photos %}<div class="gallery-thumbs">{% for photo in property.photos %}<button type="button" data-gallery="{{ url_for('static', filename=photo.image_url) }}" aria-label="Фото {{ loop.index }}"><img src="{{ url_for('static', filename=photo.image_url) }}" alt="Фото {{ loop.index }}" loading="lazy"></button>{% endfor %}</div>{% endif %}
+  <div class="description"><h2>Описание объекта</h2><p class="preserve-lines">{{ property.description }}</p></div>
+  <div class="form-card" id="request"><h2>Записаться на просмотр</h2>
+    {% if property.status == 'available' %}<p class="muted">Оставьте контакты. Риэлтор согласует дату и время. Регистрация не требуется.</p><form method="post" class="form-grid">{% include 'partials/fields.html' %}</form>
+    {% else %}<p>Этот объект сейчас недоступен для новых показов.</p>{% endif %}
+  </div>
+</div><aside class="detail-card"><h1>{{ property.title }}</h1><div class="detail-price">{{ property.price|money }} ₽{% if property.deal_type == 'rent' %}/мес.{% endif %}</div>
+  <div class="detail-meta">{{ property.address }}</div><div class="detail-grid">
+  {% for label, value in [('Комнат', property.rooms), ('Площадь', '%g м²'|format(property.area)), ('Этаж', '%s из %s'|format(property.floor, property.total_floors)), ('Тип', labels[property.property_type]), ('Сделка', labels[property.deal_type]), ('Район', property.district), ('Статус', labels[property.status])] %}<div class="detail-item"><small>{{ label }}</small><strong>{{ value }}</strong></div>{% endfor %}</div>
+  <a class="btn btn-primary" href="#request" style="width:100%">Записаться на просмотр</a><p><strong>{{ property.agent.full_name }}</strong><br>{{ property.agent.position }}<br><a href="tel:{{ property.agent.phone }}">{{ property.agent.phone }}</a></p>
+  {% if current_user.is_authenticated and current_user.role == 'CLIENT' %}<button class="btn btn-light favorite-text" type="button" data-favorite="{{ url_for('catalog.toggle', property_id=property.id) }}" aria-pressed="{{ 'true' if property.id in favorite_ids else 'false' }}">{{ '♥ В избранном' if property.id in favorite_ids else '♡ Добавить в избранное' }}</button>{% elif not current_user.is_authenticated %}<a class="btn btn-light" href="{{ url_for('auth.login', next=url_for('catalog.detail', property_id=property.id)) }}">♡ Войти для избранного</a>{% endif %}
+</aside></section></div>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Информационная система риэлторского агентства">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{{ title }} — Ключевой выбор</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script src="{{ url_for('static', filename='js/script.js') }}" defer></script>
+</head>
+<body>
+{% block layout %}
+<header class="topbar"><div class="container nav">
+  <a class="brand" href="{{ url_for('main.index') }}"><span class="brand-mark">КВ</span><span>Ключевой выбор</span></a>
+  <nav class="nav-links" id="mainNav" aria-label="Основная навигация">
+    <a {% if request.endpoint == 'main.index' %}class="active"{% endif %} href="{{ url_for('main.index') }}">Главная</a>
+    <a {% if request.blueprint == 'catalog' %}class="active"{% endif %} href="{{ url_for('catalog.index') }}">Недвижимость</a>
+    <a href="{{ url_for('main.index') }}#services">Услуги</a><a href="{{ url_for('main.index') }}#contacts">Контакты</a>
+    <details class="records-menu"><summary>Мои записи</summary><div><a href="{{ url_for('main.my_requests') }}">Мои заявки</a><a href="{{ url_for('main.my_viewings') }}">Мои показы</a>
+    {% if current_user.is_authenticated %}<a href="{{ url_for('auth.profile') }}">Профиль</a>{% endif %}
+    {% if current_user.is_authenticated and current_user.role == 'CLIENT' %}<a href="{{ url_for('catalog.favorites') }}">Избранное</a>{% endif %}
+    {% if current_user.is_authenticated %}<form method="post" action="{{ url_for('auth.logout') }}">{% include 'partials/csrf.html' %}<button class="btn btn-light" type="submit">Выйти</button></form>{% endif %}</div></details>
+  </nav>
+  <div class="nav-actions">
+  {% if current_user.is_authenticated %}
+    {% if current_user.role == 'ADMIN' %}<a class="btn btn-light" href="{{ url_for('admin.index') }}"><span class="wide-label">Панель администратора</span><span class="mobile-label">Кабинет</span></a>
+    {% elif current_user.role == 'REALTOR' %}<a class="btn btn-light" href="{{ url_for('dashboard.index') }}"><span class="wide-label">Кабинет риэлтора</span><span class="mobile-label">Кабинет</span></a>
+    {% else %}<a class="btn btn-light" href="{{ url_for('auth.profile') }}">Профиль</a>{% endif %}
+    <form method="post" action="{{ url_for('auth.logout') }}">{% include 'partials/csrf.html' %}<button class="btn btn-light" type="submit">Выйти</button></form>
+  {% else %}<a class="btn btn-light" href="{{ url_for('auth.login') }}">Войти</a>{% endif %}
+    <a class="btn btn-primary find-link" href="{{ url_for('catalog.index') }}">Найти объект</a>
+    <button class="menu-btn" type="button" aria-label="Открыть меню" aria-controls="mainNav" aria-expanded="false">☰</button>
+  </div>
+</div></header>
+{% include 'partials/flash.html' %}
+<main>{% block content %}{% endblock %}</main>
+<footer class="footer" id="contacts"><div class="container"><div class="footer-grid">
+  <div><a class="brand" href="{{ url_for('main.index') }}"><span class="brand-mark">КВ</span><span>Ключевой выбор</span></a><p>Учебный проект информационной системы риэлторского агентства.</p></div>
+  <div><h4>Недвижимость</h4><a href="{{ url_for('catalog.index', type='flat') }}">Квартиры</a><a href="{{ url_for('catalog.index', type='house') }}">Дома</a><a href="{{ url_for('catalog.index', type='commercial') }}">Коммерческая</a><a href="{{ url_for('catalog.index', type='land') }}">Участки</a></div>
+  <div><h4>Клиентам</h4><a href="{{ url_for('main.new_request') }}">Оставить заявку</a><a href="{{ url_for('catalog.index') }}">Записаться на показ</a><a href="{{ url_for('auth.login') }}">Вход в систему</a></div>
+  <div><h4>Контакты</h4><a href="tel:+74950000000">+7 (495) 000-00-00</a><a href="mailto:info@keychoice.ru">info@keychoice.ru</a><span>Москва</span></div>
+</div><div class="footer-bottom">© 2026 «Ключевой выбор». Учебный проект.</div></div></footer>
+{% endblock %}
+</body></html>

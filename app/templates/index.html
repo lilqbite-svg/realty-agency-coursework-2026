@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow">✓ Проверенные объекты и понятный поиск</span>
+        <h1>Недвижимость, которую легко выбрать</h1>
+        <p>Подбор квартир, домов и коммерческой недвижимости. Фильтры, карточки объектов, заявки на просмотр и кабинет риэлтора в одной системе.</p>
+        <div class="hero-actions"><a class="btn btn-primary" href="{{ url_for('catalog.index') }}">Смотреть объекты</a><a class="btn btn-light" href="#services">Как это работает</a></div>
+        <div class="hero-stats"><div class="stat"><strong>{{ count }}</strong><span>объектов в базе</span></div><div class="stat"><strong>4</strong><span>типа недвижимости</span></div><div class="stat"><strong>Без регистрации</strong><span>заявки и показы</span></div></div>
+      </div>
+      <div class="hero-visual" aria-label="Иллюстрация жилого комплекса"><div class="building"></div>{% if items %}<div class="float float-a"><strong>{{ '%g'|format(items[0].area) }} м² · {{ items[0].rooms }} комн.</strong><small>{{ items[0].district }} · {{ items[0].price|money }} ₽</small></div>{% endif %}<div class="float float-b"><strong>{{ count }} объектов</strong><small>доступно в каталоге</small></div></div>
+    </div>
+  </section>
+  <section class="section" style="padding-top:22px">
+    <div class="container">
+      <form class="search-panel" action="{{ url_for('catalog.index') }}">
+        <div class="field"><label for="q">Район или адрес</label><input class="input" id="q" name="q" placeholder="Например, Хамовники"></div>
+        <div class="field"><label for="deal">Сделка</label><select class="select" id="deal" name="deal"><option value="">Любая</option><option value="sale">Продажа</option><option value="rent">Аренда</option></select></div>
+        <div class="field"><label for="type">Тип объекта</label><select class="select" id="type" name="type"><option value="">Все</option><option value="flat">Квартира</option><option value="house">Дом</option><option value="commercial">Коммерческая</option><option value="land">Участок</option></select></div>
+        <div class="field"><label for="budget">Бюджет до</label><input class="input" id="budget" name="max_price" type="number" placeholder="30000000"></div>
+        <button class="btn btn-primary" type="submit">Найти</button>
+      </form>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <div class="section-header"><div><h2>Популярные предложения</h2><p>Актуальные объекты из базы агентства.</p></div><a class="btn btn-light" href="{{ url_for('catalog.index') }}">Весь каталог →</a></div>
+      <div class="cards">{% for property in items %}{% include 'partials/card.html' %}{% else %}<div class="empty visible">Предложения скоро появятся.</div>{% endfor %}</div>
+</div>
+</section>
+  <section class="section" id="services">
+    <div class="container">
+      <div class="section-header"><div><h2>Что можно найти</h2><p>Система работает с основными типами недвижимости.</p></div></div>
+      <div class="category-grid">
+        <a class="category-card" href="{{ url_for('catalog.index', type='flat') }}"><div class="category-icon">🏢</div><h3>Квартиры</h3><p>Новостройки и вторичное жильё</p></a>
+        <a class="category-card" href="{{ url_for('catalog.index', type='house') }}"><div class="category-icon">🏠</div><h3>Дома</h3><p>Коттеджи и загородные дома</p></a>
+        <a class="category-card" href="{{ url_for('catalog.index', type='commercial') }}"><div class="category-icon">🏬</div><h3>Коммерческая</h3><p>Офисы и помещения</p></a>
+        <a class="category-card" href="{{ url_for('catalog.index', deal='rent') }}"><div class="category-icon">🔑</div><h3>Аренда</h3><p>Долгосрочная аренда объектов</p></a>
+      </div>
+    </div>
+  </section>
+  <section class="section"><div class="container cta"><div><h2>Не нашли подходящий объект?</h2><p>Оставьте заявку — риэлтор сможет подобрать варианты по вашим требованиям.</p></div><a class="btn btn-light" href="{{ url_for('main.new_request') }}">Оставить заявку</a></div></section>
+
+{% endblock %}
